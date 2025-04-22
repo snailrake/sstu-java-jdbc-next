@@ -1,0 +1,28 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Maven / Gradle build
+target/
+build/
+
+# VS Code
+.vscode/
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# Logs
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# XML-файлы, которые не должны попадать в репозиторий
+*.xml
+
+# Исключение: если тебе нужно оставить какие-то конкретные XML — добавь их обратно:
+#!src/main/resources/config.xml
