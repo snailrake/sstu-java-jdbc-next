@@ -1,4 +1,4 @@
-package org.example.sstujavajdbcnext.operation;
+package org.example.sstujavajdbcnext.operator;
 
 import java.util.List;
 

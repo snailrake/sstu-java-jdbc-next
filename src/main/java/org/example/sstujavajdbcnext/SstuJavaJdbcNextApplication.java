@@ -1,8 +1,7 @@
 package org.example.sstujavajdbcnext;
 
 import org.example.sstujavajdbcnext.model.Employee;
-import org.example.sstujavajdbcnext.repository.DaoTest;
-import org.example.sstujavajdbcnext.repository.OriginalDao;
+import org.example.sstujavajdbcnext.repository.Repository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,9 +11,9 @@ import java.util.List;
 @SpringBootApplication
 public class SstuJavaJdbcNextApplication implements CommandLineRunner {
 
-    private final DaoTest dao;
+    private Repository dao;
 
-    public SstuJavaJdbcNextApplication(DaoTest dao) {
+    public SstuJavaJdbcNextApplication(Repository dao) {
         this.dao = dao;
     }
 

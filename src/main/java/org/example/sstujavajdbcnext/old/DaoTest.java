@@ -1,7 +1,7 @@
-package org.example.sstujavajdbcnext.repository;
+package org.example.sstujavajdbcnext.old;
 
 import org.example.sstujavajdbcnext.model.Employee;
-import org.example.sstujavajdbcnext.postprocessors.Dao;
+import org.example.sstujavajdbcnext.repository.Dao;
 
 import java.util.List;
 

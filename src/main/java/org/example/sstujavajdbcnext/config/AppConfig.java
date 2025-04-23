@@ -1,9 +1,9 @@
 package org.example.sstujavajdbcnext.config;
 
 import org.example.sstujavajdbcnext.converter.ConverterContext;
-import org.example.sstujavajdbcnext.operation.OperatorContext;
+import org.example.sstujavajdbcnext.operator.OperatorContext;
 import org.example.sstujavajdbcnext.proxy.DaoProxy;
-import org.example.sstujavajdbcnext.repository.DaoTest;
+import org.example.sstujavajdbcnext.repository.Repository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -12,13 +12,13 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 @Configuration
-public class DataSourceConfig {
+public class AppConfig {
 
     private OperatorContext operatorContext;
 
     private ConverterContext converterContext;
 
-    public DataSourceConfig(OperatorContext operatorContext, ConverterContext converterContext) {
+    public AppConfig(OperatorContext operatorContext, ConverterContext converterContext) {
         this.operatorContext = operatorContext;
         this.converterContext = converterContext;
     }
@@ -29,7 +29,7 @@ public class DataSourceConfig {
     }
 
     @Bean
-    public DaoTest daoTest() throws SQLException {
-        return DaoProxy.create(DaoTest.class, connection(), operatorContext, converterContext);
+    public Repository daoIfaceTest() throws SQLException {
+        return DaoProxy.create(Repository.class, connection(), operatorContext, converterContext);
     }
 }

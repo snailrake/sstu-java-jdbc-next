@@ -1,4 +1,4 @@
-package org.example.sstujavajdbcnext;
+package org.example.sstujavajdbcnext.model;
 
 public class Operation {
 

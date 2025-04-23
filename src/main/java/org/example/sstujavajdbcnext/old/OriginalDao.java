@@ -1,4 +1,4 @@
-package org.example.sstujavajdbcnext.repository;
+package org.example.sstujavajdbcnext.old;
 
 import org.example.sstujavajdbcnext.annotation.Column;
 import org.example.sstujavajdbcnext.annotation.Table;

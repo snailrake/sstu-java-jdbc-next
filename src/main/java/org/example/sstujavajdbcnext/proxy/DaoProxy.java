@@ -1,13 +1,13 @@
 package org.example.sstujavajdbcnext.proxy;
 
-import org.example.sstujavajdbcnext.Operation;
 import org.example.sstujavajdbcnext.annotation.Column;
 import org.example.sstujavajdbcnext.annotation.Table;
 import org.example.sstujavajdbcnext.converter.Converter;
 import org.example.sstujavajdbcnext.converter.ConverterContext;
 import org.example.sstujavajdbcnext.exception.DatabaseAccessException;
-import org.example.sstujavajdbcnext.operation.Operator;
-import org.example.sstujavajdbcnext.operation.OperatorContext;
+import org.example.sstujavajdbcnext.model.Operation;
+import org.example.sstujavajdbcnext.operator.Operator;
+import org.example.sstujavajdbcnext.operator.OperatorContext;
 import org.springframework.cglib.proxy.Enhancer;
 import org.springframework.cglib.proxy.InvocationHandler;
 
@@ -19,9 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.stream.Collectors;
 
 public class DaoProxy {
@@ -51,31 +49,16 @@ public class DaoProxy {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            Class<?> clazz = (Class<?>) args[0];
-            String filters = method.getName().substring("findBy".length());
             List<Object> result = new ArrayList<>();
+            Class<?> clazz = (Class<?>) args[0];
+            String conditions = method.getName().substring("findBy".length());
 
-            String tableName = clazz.getSimpleName();
-            if (clazz.isAnnotationPresent(Table.class)) {
-                tableName = clazz.getAnnotation(Table.class).value();
-            }
+            String tableName = getTableName(clazz);
+            String fieldsQueryPart = getFieldsQueryPart(clazz);
+            List<Operation> operations = splitMethodToOperations(conditions);
 
-            String fieldsClause = Arrays.stream(clazz.getDeclaredFields())
-                    .map(field -> {
-                        if (field.isAnnotationPresent(Column.class)) {
-                            return field.getAnnotation(Column.class).value();
-                        }
-                        return field.getName();
-                    }).collect(Collectors.joining(", "));
-
-            List<String> split = splitMethodToOperators(filters);
-            List<Operation> operations = new ArrayList<>();
             StringBuilder whereCondition = new StringBuilder();
             List<Object> params = new ArrayList<>();
-
-            for (int i = 0; i < split.size() - 1; i += 2) {
-                operations.add(new Operation(split.get(i + 1), split.get(i)));
-            }
 
             for (int i = 0; i < operations.size(); i++) {
                 Operation operation = operations.get(i);
@@ -83,7 +66,7 @@ public class DaoProxy {
                 operator.apply(getColumnName(clazz, operation.getField()), args[i + 1], whereCondition, params);
             }
 
-            String sql = String.format("SELECT %s FROM %s WHERE %s", fieldsClause, tableName, whereCondition);
+            String sql = String.format("SELECT %s FROM %s WHERE %s", fieldsQueryPart, tableName, whereCondition);
 
             try (PreparedStatement statement = connection.prepareStatement(sql)) {
                 for (int i = 1; i < params.size() + 1; i++) {
@@ -91,20 +74,7 @@ public class DaoProxy {
                 }
                 ResultSet resultSet = statement.executeQuery();
                 while (resultSet.next()) {
-                    Object obj = clazz.getConstructor().newInstance();
-                    for (Field field : clazz.getDeclaredFields()) {
-                        String fieldName = field.getName();
-                        String columnName = field.getName();
-                        if (field.isAnnotationPresent(Column.class)) {
-                            columnName = field.getAnnotation(Column.class).value();
-                        }
-                        String setterName = String.format("set%s%s", fieldName.substring(0, 1).toUpperCase(),
-                                fieldName.substring(1));
-                        Method setter = obj.getClass().getMethod(setterName, field.getType());
-                        String fieldResult = resultSet.getString(columnName);
-                        Converter<?> converter = converterContext.getConverter(field.getType());
-                        setter.invoke(obj, converter.convert(fieldResult));
-                    }
+                    Object obj = createObject(clazz, resultSet);
                     result.add(obj);
                 }
                 return result;
@@ -117,20 +87,59 @@ public class DaoProxy {
             }
         }
 
-        private List<String> splitMethodToOperators(String method) {
-            List<String> result = new ArrayList<>();
-            StringBuilder current = new StringBuilder();
+        private String getFieldsQueryPart(Class<?> clazz) {
+            return Arrays.stream(clazz.getDeclaredFields())
+                    .map(field -> {
+                        if (field.isAnnotationPresent(Column.class)) {
+                            return field.getAnnotation(Column.class).value();
+                        }
+                        return field.getName();
+                    }).collect(Collectors.joining(", "));
+        }
 
+        private String getTableName(Class<?> clazz) {
+            if (clazz.isAnnotationPresent(Table.class)) {
+                return clazz.getAnnotation(Table.class).value();
+            }
+            return clazz.getSimpleName();
+        }
+
+        private Object createObject(Class<?> clazz, ResultSet resultSet) throws Exception {
+            Object obj = clazz.getConstructor().newInstance();
+            for (Field field : clazz.getDeclaredFields()) {
+                String fieldName = field.getName();
+                String columnName = field.getName();
+                if (field.isAnnotationPresent(Column.class)) {
+                    columnName = field.getAnnotation(Column.class).value();
+                }
+                String setterName = String.format("set%s%s", fieldName.substring(0, 1).toUpperCase(),
+                        fieldName.substring(1));
+                Method setter = obj.getClass().getMethod(setterName, field.getType());
+                String fieldResult = resultSet.getString(columnName);
+                Converter<?> converter = converterContext.getConverter(field.getType());
+                setter.invoke(obj, converter.convert(fieldResult));
+            }
+            return obj;
+        }
+
+        private List<Operation> splitMethodToOperations(String method) {
+            List<String> methodParts = new ArrayList<>();
+            StringBuilder current = new StringBuilder();
             for (char c : method.toCharArray()) {
                 if (Character.isUpperCase(c) && !current.isEmpty()) {
-                    result.add(current.toString());
+                    methodParts.add(current.toString());
                     current = new StringBuilder();
                 }
                 current.append(c);
             }
-            result.add(current.toString());
+            methodParts.add(current.toString());
 
-            return result;
+            List<Operation> operations = new ArrayList<>();
+            for (int i = 0; i < methodParts.size() - 1; i += 2) {
+                operations.add(new Operation(methodParts.get(i + 1), methodParts.get(i)));
+            }
+
+            return operations;
         }
 
         private String getColumnName(Class<?> clazz, String fieldName) {

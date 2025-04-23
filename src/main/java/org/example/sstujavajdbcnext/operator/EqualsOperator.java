@@ -1,17 +1,17 @@
-package org.example.sstujavajdbcnext.operation;
+package org.example.sstujavajdbcnext.operator;
 
 import org.springframework.stereotype.Component;
 
 @Component
-public class GreaterThanOperator extends Operator {
+public class EqualsOperator extends Operator {
 
     @Override
     public String getOperatorType() {
-        return "Greater";
+        return "Equals";
     }
 
     @Override
     protected String buildCondition(String field) {
-        return field + " > ?";
+        return field + " = ?";
     }
 }
